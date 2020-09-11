@@ -3,6 +3,11 @@ The RAL Data Management Group (LDM and more)
 
 Structure of this repository
 ```
+inflight-icing
+rapdmg
+common
+
+Under inflight-icing,rapdmg (other projects welcome to create directories at this level also) are directories with user names (ldm, rapdmg, etc.), then under the user names:
 common
 machines
 ├── curry
@@ -11,12 +16,14 @@ machines
 ├── gateway # shared oregano/parsley files
 ├── thyme
 
-Each machine/common has:
+Under each machine/common 
 etc  -- ldm configuration files
 bin  -- scripts and other executables
 param -- configuration files
-env -- environment variables, bashrc
-control -- crontab
+control -- crontab, environment variables, bashrc
+
+So:
+$project/$user/$machine/dirs
 
 ```
 
