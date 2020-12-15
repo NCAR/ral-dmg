@@ -1,0 +1,13 @@
+#! /bin/csh
+#
+
+cd ~/util/param
+
+running "LdataWatcher -params LdataWatcher.HRRR-GSD-N"
+
+if ($status == 1) then
+   LdataWatcher -params LdataWatcher.HRRR-GSD-N |& \
+           LogFilter -d ~/logs -p LdataWatcher -i HRRR-GSD-N >& /dev/null &
+endif
+
+

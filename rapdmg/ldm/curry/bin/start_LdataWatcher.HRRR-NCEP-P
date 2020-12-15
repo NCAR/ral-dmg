@@ -1,0 +1,13 @@
+#! /bin/csh
+#
+
+cd ~/util/param
+
+running "LdataWatcher -params LdataWatcher.HRRR-NCEP-P"
+
+if ($status == 1) then
+   LdataWatcher -params LdataWatcher.HRRR-NCEP-P |& \
+           LogFilter -d ~/logs -p LdataWatcher -i HRRR-NCEP-P >& /dev/null &
+endif
+
+

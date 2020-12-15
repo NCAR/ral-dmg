@@ -1,0 +1,13 @@
+#! /bin/csh
+#
+
+cd ~/util/param
+
+running "LdataWatcher -params LdataWatcher.RAP130N"
+
+if ($status == 1) then
+   LdataWatcher -params LdataWatcher.RAP130N |& \
+           LogFilter -d ~/logs -p LdataWatcher -i RAP130N >& /dev/null &
+endif
+
+

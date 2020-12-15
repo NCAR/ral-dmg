@@ -1,0 +1,57 @@
+# redirect problem from crontab to someone
+#
+MAILTO=ldm-help@rap.ucar.edu
+SHELL=/bin/bash
+BASH_ENV=$HOME/.bashrc
+ 
+#
+# Rotate the log files nightly @ 6:15 so that the syslog doesn't also rotate them  (see system admin - logs > 1MB are rotated)
+#
+15 6 * * *  $HOME/bin/ldmadmin  newlog > $HOME/logs/ldmadmin_newlog.crontab.log 2>&1
+
+# scour log files
+13 0 * * * $HOME/bin/ldmadmin scour > $HOME/logs/ldmadmin_scour.crontab.log 2>&1
+13 1 * * * find /d1/ldm/var/logs -type d -empty -execdir rmdir {} \; > $HOME/logs/emptyDirCleanup.crontab.log 2>&1
+
+# cleanup the tmp status files
+1 1 * * *  find /tmp -name grib_notify_\* -mtime +7 -delete  > $HOME/logs/cleanupTmpStatus.crontab.log 2>&1
+
+
+# GFS004 (i.e. 0.5 degree) is for some reason not getting here via LDM
+# so we are getting it via wget now.
+# https://wiki.ucar.edu/pages/viewpage.action?pageId=414417571
+17 * * * * ~/wget/gfs/wget_gfs_0.5.pl > $HOME/logs/wget_gfs_0.5.pl.cron.log 2>&1
+
+
+# check on status of ldm
+0,15,30,45 * * * * $HOME/bin/ldmadmin  check > $HOME/logs/ldmadmin_check.crontab.log 2>&1
+
+# fix ldm if broken
+*/5 * * * * /home/ldm/util/bin/check_ldm.sh > /home/ldm/logs/check_ldm.sh.crontab.log 2>&1
+
+# metrics
+0,5,10,15,20,25,30,35,40,45,50,55 * * * * $HOME/bin/ldmadmin  addmetrics > $HOME/logs/ldmadmin_addmetrics.crontab.log 2>&1
+0 0 * * 0 $HOME/bin/ldmadmin  newmetrics  > $HOME/logs/ldmadmin_newmetrics.crontab.log 2>&1
+
+# move grib files from CONDUIT that were slow to complete
+*/15 * * * * grib_scraps.py --top_dir /var/autofs/mnt/rapdmg1/data/grib --debug --min_percentage 99.5 --notify 2>&1 | /rap/bin/LogFilter -d $HOME/logs/ -p grib_scraps
+
+#if nto running, start up LdataWatchers to provide LDM notifications of arriving model data
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.RAP130N > $HOME/logs/LdataWatcher.RAP130N.log 2>&1
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.RAP130P > $HOME/logs/LdataWatcher.RAP130P.log 2>&1
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.HRRR-NCEP-N > $HOME/logs/LdataWatcher.HRRR-NCEP-N.log 2>&1
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.HRRR-NCEP-P > $HOME/logs/LdataWatcher.HRRR-NCEP-P.log 2>&1
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.HRRR-GSD-P > $HOME/logs/LdataWatcher.HRRR-GSD-P.log 2>&1
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.HRRR-GSD-N > $HOME/logs/LdataWatcher.HRRR-GSD-N.log 2>&1
+
+# kind of a hack, but the LdataWatchers above, for some reason stop calling their child scripts on occasion.
+# even though the LdataWatcher is up and logging, the child script doesn't seem to get called.  Killing and
+# restarting the LdataWatcher seems to fix the problem, so for now, just kill them once a day.
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.RAP130P > $HOME/logs/Snuff.RAP130P.log 2>&1
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.RAP130N > $HOME/logs/Snuff.RAP130N.log 2>&1
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.HRRR-NCEP-P > $HOME/logs/Snuff.HRRR-NCEP-P.log 2>&1
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.HRRR-NCEP-N > $HOME/logs/Snuff.HRRR-NCEP-N.log 2>&1
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.HRRR-GSD-P > $HOME/logs/Snuff.HRRR-GSD-P.log 2>&1
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.HRRR-GSD-N > $HOME/logs/Snuff.HRRR-GSD-N.log 2>&1
+
+00 19 * * * ( set -xv; set ; env ; alias ) > /tmp/croninfo-ldm.log 2>&1
