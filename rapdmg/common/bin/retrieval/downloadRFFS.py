@@ -3,7 +3,6 @@
 downloadRFFS.py downloads RFFS data using wget.
 """
 
-
 ######################
 # PYTHON LIB IMPORTS
 #####################
@@ -71,9 +70,10 @@ ncftpget_config = '/home/rapdmg/ftp/nomads_nco_noaa_gov.cfg'
 write_ldata = False
 
 # how long to sleep between url requests  (in seconds)
-url_sleep = .25
+request_sleep = .25
 
 # if downloaded files are smaller than this, an error is assumed to have occurred.
+# Set to a negative number to disable this check.
 min_expected_filesize = 500e+6  # 500M
 
 # You can use some various replacement field templates in these parameters
@@ -84,7 +84,9 @@ min_expected_filesize = 500e+6  # 500M
 #   {cycle_date}         --- YYYYMMDD
 #   {cycle_time}         --- YYYYMMDDHH
 #   {cycle_hour}         --- HH
-#   {forecast_hour}      --- FF (lead) use e.g. {forecast_hour:04d} for 4 digit leading zeros
+#   {cycle_minute}       --- MM
+#   {forecast_hour}      --- h (lead) need to specify # of digits use e.g. {forecast_hour:03d} for 3 digit leading zeros
+#   {forecast_minute}      --- m (lead) need to specify # of digits use e.g. {forecast_minute:02d} for 2 digit leading zeros
 
 
 # 2100412002300 
@@ -93,11 +95,11 @@ min_expected_filesize = 500e+6  # 500M
 
 # RFFS-CONUS-bgdawp/GSL/20210104/20210104_i12_f023_RFFS-CONUS-bgdawp_GSL.grib2
 
-remote_filename = "{cycle_year}{cycle_julian_day}{cycle_hour}00{forecast_hour}00"
-local_filename = "{cycle_date}_i{cycle_hour}_f{forecast_hour:03d}_RFFS-CONUS-bgdwawp.grib2"        
+remote_filename = "{cycle_year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+local_filename = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgdwawp.grib2"        
 
 # remote dir is *relative* and is appended to gfs_base_url 
-remote_dir =  "data/nccf/com/gfs/prod/gfs.{cycle_date}/{cycle_hour}"
+remote_dir = "data/nccf/com/gfs/prod/gfs.{cycle_date}/{cycle_hour}"
 local_dir = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp/{cycle_year}/{cycle_month}{cycle_day}"
 
 ##################################  CMD-LINE OVERRIDES  ########################
@@ -160,7 +162,7 @@ def check_params():
         logging.fatal(f"model_type ({p['model_type']} is not supported.  Must be one of {model_type_values}")
         sys.exit(1)
 
-    #if not os.path.exists(p['local_dir']):
+    # if not os.path.exists(p['local_dir']):
     #    logging.fatal(f"{p['local_dir']} does not exist")
     #    sys.exit(1)
 
@@ -184,17 +186,15 @@ def join_slash(a, b):
 # In [8]: urljoin('//','beware', 'of/this///')
 # Out[8]: '/beware/of/this///'
 #
-# In [9]: urljoin('/leading', 'and/', '/trailing
+# In [9]: urljoin('/leading', 'and/', '/trailingf
 # Out[9]: '/leading/and/trailing/slash/'
 def url_join(*args):
     return reduce(join_slash, args) if args else ''
 
 
-def find_latest_hour():
+def find_latest_hour_offset():
     # Get current time
     ctimeutc = datetime.utcnow()
-
-    p['off_hours'] = None
 
     for hour_offset in range(0, p['look_back_hours']):
         ptimeutc = ctimeutc - timedelta(hours=hour_offset)
@@ -203,17 +203,16 @@ def find_latest_hour():
         url_dir = url_join(p['gfs_base_url'], p['remote_dir'].format(**file_template_values))
         # urlsite = f"{p['gfs_base_url']}gfs.{ptimeutc.strftime('%Y%m%d')}/{ptimeutc.strftime('%H')}"
         try:
-            time.sleep(p['url_sleep'])
+            time.sleep(p['request_sleep'])
             ret = urllib.request.urlopen(url_dir)
             ret.close()
-            p['off_hours'] = hour_offset
-            break
+            return hour_offset
+
         except urllib.error.HTTPError as e:
             logging.debug(f"{url_dir} is not available.")
 
-    if not p['off_hours']:
-        logging.warning(f'No data in last {p["look_back_hours"]} hours found -- Exiting.')
-        sys.exit(0)
+    logging.warning(f'No data in last {p["look_back_hours"]} hours found -- Exiting.')
+    sys.exit(0)
 
 
 # file_template_values is a dictionary, and dt is the datetime used.
@@ -223,12 +222,13 @@ def add_file_template_time_values(file_template_values, dt):
     file_template_values["cycle_year"] = dt.strftime('%Y')
     file_template_values["cycle_month"] = dt.strftime('%m')
     file_template_values["cycle_hour"] = dt.strftime('%H')
+    file_template_values["cycle_minute"] = dt.strftime('%m')
     file_template_values["cycle_time"] = file_template_values["cycle_date"] + file_template_values["cycle_hour"]
 
 
 def check_required_url(url_dir):
     try:
-        time.sleep(p['url_sleep'])
+        time.sleep(p['request_sleep'])
         ret = urllib.request.urlopen(url_dir)
         ret.close()
     except urllib.error.URLError as e:
@@ -236,82 +236,63 @@ def check_required_url(url_dir):
         sys.exit(1)
 
 
-def check_local_file(remote_path, local_path):
+def is_local_file_good(local_path, remote_file_size):
     """
     Check if the file is already available on the local disk and if the size is right
-    :param remote_path: 
-    :param local_path: 
+    :param local_path:
+    :param remote_file_size:
     :return: True if file is ok, False if not ok.
     """
-    # Get the remote size
-    full_url = url_join(p['gfs_base_url'], remote_path)
-    try:
-        time.sleep(p['url_sleep'])
-        ret = urllib.request.urlopen(full_url)
-        file_size_at_server = int(ret.info().get('content-length', '0'))
-        ret.close()
 
-        # See if the corresponding local file exists...
-        if os.path.isfile(local_path):
+    # See if the corresponding local file exists...
+    if not os.path.isfile(local_path):
+        return False
 
-            local_file_size = os.path.getsize(local_path)
+    local_file_size = os.path.getsize(local_path)
 
-            # See if the size is the same as that on the remote
-            # server. If so, the local file is okay and we don't
-            # need to do anything. If not, remove the local file
-            # and move on as thought we didn't have the file.
-            # Note though that we are lumping the two cases where
-            # the local file size is not the same as the remote
-            # file size into one catagory (i.e. local < remote
-            # AND remote < local). The case where remote < local
-            # would be extremely odd, but maybe removing the local
-            # and keeping the remote is not the way to go in that
-            # case.
-            if local_file_size == file_size_at_server:
-                logging.debug(f"already have good local file - {local_path}")
-                return True
+    if p["min_expected_filesize"] > 0 and local_file_size < p["min_expected_filesize"]:
+        logging.warning(
+            f"{local_path} did not meet the minimum size: {p['min_expected_filesize']}, and will be deleted.")
+        return False
 
-    except urllib.error.URLError as e:
-        logging.warning(f"Exception ({e}) when attempting to find size of {full_url}")
-
-    logging.debug(f"TODO")
-    cmd = f"rm -f {local_path}"
-    run_cmd(cmd)
+    return local_file_size == remote_file_size
 
 
+# TODO: what if this fails?
 def get_remote_file_size(remote_path):
     # Get the remote size
-    time.sleep(p['url_sleep'])
+    time.sleep(p['request_sleep'])
     ret = urllib.request.urlopen(remote_path)
     file_size_at_server = int(ret.info().get('content-length', '0'))
     ret.close()
     return file_size_at_server
+
 
 def safe_mkdirs(d):
     logging.info(f"making dir: {d}")
     if not os.path.exists(d):
         os.makedirs(d, 0o777, exist_ok=True)
 
+
 def print_params():
     logging.info(f"Using these parameters:")
     for line in p.getParamsString().splitlines():
         logging.info(f"\t{line}")
+
 
 def main():
     condition_params()
     check_params()
     print_params()
 
-    #logging.info(f"Downloading {p['model_type']} to {p['local_dir']}")
-
-    if 0 <= p['force_cycle_hour']:
+    if p['force_cycle_hour'] >= 0:
         ptimeutc = datetime.utcnow()
         ptimeutc = ptimeutc.replace(hour=p['force_cycle_hour'])
     else:
         # If the offset in hours is set to -1, look through the previous
         # 24 hours to see what is available right now and reset off_hours to the most recent available data
-        if 0 > p['off_hours']:
-            find_latest_hour()
+        if p['off_hours'] < 0:
+            p['off_hours'] = find_latest_hour_offset()
 
         ptimeutc = datetime.utcnow() - timedelta(hours=p['off_hours'])
 
@@ -328,117 +309,69 @@ def main():
     # Download the data
     # ------------------------------------------------------------------
     downloaded_files = 0
-    for member in p['ensemble_members']:
 
-        file_template_values['member'] = member
-        # loop over all forecast hours up to the maximum forecast hour.
-        start_hour = 0
-        end_hour = p['max_forecast_hour']
-        hour_step = p['forecast_step']
+    # loop over all forecast hours up to the maximum forecast hour.
+    start_hour = 0
+    end_hour = p['max_forecast_hour']
+    hour_step = p['forecast_step']
 
-        for h in range(start_hour, end_hour + 1, hour_step):
+    for h in range(start_hour, end_hour + 1, hour_step):
 
-            file_template_values["forecast_hour"] = h
+        file_template_values["forecast_hour"] = h
+        file_template_values["forecast_minute"] = "00"
 
-            # Remote file name
-            remote_dir = p['remote_dir'].format(**file_template_values)
-            remote_file = p['remote_filename'].format(**file_template_values)
-            remote_path = os.path.join(remote_dir, remote_file)
+        # Remote file name
+        remote_dir = p['remote_dir'].format(**file_template_values)
+        remote_file = p['remote_filename'].format(**file_template_values)
+        remote_path = os.path.join(remote_dir, remote_file)
 
-            # Local file name
-            local_dir = p['local_dir'].format(**file_template_values)
-            local_file = p['local_filename'].format(**file_template_values)
-            local_path = os.path.join(local_dir, local_file)
-            logging.debug(f"hour: {h}\tremote: {remote_path}\tlocal: {local_path}")
+        # Local file name
+        local_dir = p['local_dir'].format(**file_template_values)
+        local_file = p['local_filename'].format(**file_template_values)
+        local_path = os.path.join(local_dir, local_file)
 
-            safe_mkdirs(local_dir)
+        logging.debug(f"foreast hour: {h}\tremote: {remote_path}\tlocal: {local_path}")
 
-            # Check if the file is already available on the local disk
-            # and if the size is right
-            fok = 0
+        safe_mkdirs(local_dir)
 
-            url_path = url_join(p['gfs_base_url'], remote_path)
-            logging.info(f"url_path is {url_path}")
+        # Check if the file is already available on the local disk
+        remote_file_size = get_remote_file_size(remote_path)
 
-            try:
+        if is_local_file_good(local_path, remote_file_size):
+            logging.debug(f"Already have good local file - {local_path}")
+        else:
+            cmd = f"rm -f {local_path}"
+            run_cmd(cmd)
 
-                # Get the remote size
-                remote_file_size = get_remote_file_size(url_path)
+            # File wasn't the right size or wasn't there. Either way
+            # it isn't there now. Get the file.
+            logging.info(f"downloading {remote_path}")
 
-                # See if the corresponding local file exists...
-                if os.path.isfile(local_path):
+            # Get the file using wget
+            cmd = f'wget {remote_path} -O {local_path}'
+            time.sleep(p['request_sleep'])
+            run_cmd(cmd)
 
-                    # Get the file size
-                    local_file_size = os.path.getsize(local_path)
+            # Check if we got a good file
+            if is_local_file_good(local_path, remote_file_size):
 
-                    # See if the size is the same as that on the remote
-                    # server. If so, the local file is okay and we don't
-                    # need to do anything. If not, remove the local file
-                    # and move on as thought we didn't have the file.
-                    # Note though that we are lumping the two cases where
-                    # the local file size is not the same as the remote
-                    # file size into one catagory (i.e. local < remote
-                    # AND remote < local). The case where remote < local
-                    # would be extremely odd, but maybe removing the local
-                    # and keeping the remote is not the way to go in that
-                    # case.
-                    if local_file_size == remote_file_size:
-                        fok = 1
-                        logging.debug(f"already have good local file - {local_path}")
-                    else:
-                        cmd = f"rm -f {local_path}"
-                        run_cmd(cmd)
+                # All is well. Tell the user
+                downloaded_files += 1
+                logging.debug(f"{local_path} successfully retrieved.")
 
-                # File wasn't the right size or wasn't there. Either way
-                # it isn't there now. Get the file.
-                if fok == 0:
-
-                    logging.info(f"downloading {url_path}")
-
-                    # Get the file using wget
-                    cmd = f'wget {url_path} -O {local_path}'
-                    time.sleep(p['url_sleep'])
+                # Write latest_data_info and register
+                # with data mapper if requested to do so
+                if p['write_ldata']:
+                    cmd = (f"LdataWriter -dir {local_dir} -rpath  {local_file} -dtype grib2 -lead {h * 60 * 60} "
+                           f"-ltime {file_template_values['cycle_time']}0000 -maxDataTime")
                     run_cmd(cmd)
 
-                    # Check if we even got a file
-                    if os.path.isfile(local_path):
+            else:
+                logging.error(f"downloading {remote_path} failed !")
+                cmd = f'rm -f {local_path}'
+                run_cmd(cmd)
 
-                        # Check file size against a minimum size
-                        local_file_size = os.path.getsize(local_path)
-                        if local_file_size > p['min_expected_filesize']:
-
-                            # All is well. Tell the user
-                            downloaded_files += 1
-                            logging.debug(f"{local_path} is OK-ed !")
-
-                            # Write latest_data_info and register
-                            # with data mapper if requested to do so
-                            if p['write_ldata']:
-                                cmd = (f"LdataWriter -dir {local_dir} -rpath  {local_file} -dtype grib2 -lead {h*60*60} "
-                                       f"-ltime {file_template_values['cycle_time']}0000 -maxDataTime")
-                                run_cmd(cmd)
-
-                        # Didn't meet the minimum file size requirement.
-                        # Tell the user what happened and remove file we assume is incomplete
-                        else:
-                            logging.warning(
-                                f"{url_path} did not meet the minimum size: {p['min_expected_filesize']}, and will be deleted.")
-                            cmd = f'rm -f {local_path}'
-                            run_cmd(cmd)
-
-                    # We didn't get a file. The downloading failed.
-                    else:
-                        logging.error(f"downloading {url_path} failed !")
-
-            #
-            # Exception: Couldn't connect or couldn't file the file we
-            # are looking for. Tell the user.
-            #
-            except urllib.error.HTTPError as e:
-                logging.error(f"Download of {url_path} failed!")
-                logging.error(f"{e}")
-
-    logging.info(f"downloadGFS.py completed succesfully.  Retrieved {downloaded_files} files.")
+    logging.info(f"{os.path.basename(__file__)} completed succesfully.  Retrieved {downloaded_files} files.")
 
 
 if __name__ == '__main__':
