@@ -236,9 +236,10 @@ def is_url_valid(base_url, remote_dir):
             return False
         return True
 
-    # TODO: Do we even need this?  If so, we need to do something for FTP
 
-
+    # This really only works if the data is organized into hourly directories...
+    #   Maybe we should just skip this, and work backwards from present time if an hour is not
+    #   explicitly given.
 def find_latest_hour_offset():
     # Get current time
     ctimeutc = datetime.utcnow()
@@ -266,6 +267,9 @@ def add_file_template_time_values(file_template_values, dt):
     file_template_values["cycle_hour"] = dt.strftime('%H')
     file_template_values["cycle_minute"] = dt.strftime('%m')
     file_template_values["cycle_time"] = file_template_values["cycle_date"] + file_template_values["cycle_hour"]
+    file_template_values["cycle_day"] = dt.strftime('%d')
+    file_template_values["cycle_julian_day"] = dt.strftime('%j')
+
 
 
 
@@ -352,6 +356,7 @@ def close_connection():
     if p['retrieval_protocol'] == 'ftp':
         p['_ftp'].quit()
 
+def
 
 def main():
     condition_params()
@@ -390,9 +395,9 @@ def main():
     end_hour = p['max_forecast_hour']
     hour_step = p['forecast_step']
 
-    for h in range(start_hour, end_hour + 1, hour_step):
+    for fh in range(start_hour, end_hour + 1, hour_step):
 
-        file_template_values["forecast_hour"] = h
+        file_template_values["forecast_hour"] = fh
         file_template_values["forecast_minute"] = "00"
 
         # Remote file name
