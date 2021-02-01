@@ -56,8 +56,14 @@ force_cycle_hour = -1
 # the maximum forecast hour to download
 max_forecast_hour = 36
 
+
 # the step between forecast hours to be downloaded (only suppports integers)
-forecast_step    = 1
+#  If this is > 1, forecast hours will only be used if the modulus of the forecast hour and this value is zero.
+forecast_step = 1
+
+# the step between generation hours to be downloaded (only suppports integers)
+#  If this is > 1, generations hours will only be used if the modulus of the generation hour and this value is zero.
+gen_step = 6
 
 # location of the gfs data (passed to ncftpget)
 base_url = 'gsdftp.fsl.noaa.gov'
@@ -82,6 +88,7 @@ min_expected_filesize = 500e+6  # 500M
 
 # You can use some various replacement field templates in these parameters
 #   {cycle_year}         --- YYYY
+#   {cycle_2year}        --- YY
 #   {cycle_month}        --- MM
 #   {cycle_day}          --- DD
 #   {cycle_julian_day}   --- JJJ
@@ -89,9 +96,12 @@ min_expected_filesize = 500e+6  # 500M
 #   {cycle_time}         --- YYYYMMDDHH
 #   {cycle_hour}         --- HH
 #   {cycle_minute}       --- MM
+
+#####  -- forecast fields are stored as integers, so you should specify a format specifier:
 #   {forecast_hour}      --- h (lead) need to specify # of digits use e.g. {forecast_hour:03d} for 3 digit leading zeros
 #   {forecast_minute}      --- m (lead) need to specify # of digits use e.g. {forecast_minute:02d} for 2 digit leading zeros
 
+# NOTE: Currently cycle_minute and forecast_minute are forced to zero.  i.e. sub hourly times not currently supported.
 
 # 2100412002300 
 # YYJJJHHMMHHMM
@@ -104,7 +114,10 @@ local_filename = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}
 
 # remote dir is *relative* and is appended to base_url 
 remote_dir = "data/nccf/com/gfs/prod/gfs.{cycle_date}/{cycle_hour}"
-local_dir = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp/{cycle_year}/{cycle_month}{cycle_day}"
+
+#  local file = local_base_dir + local_dir + local_filename
+local_base_dir = "/rapdmg2/data/grib/"
+local_dir = "{cycle_year}/{cycle_month}{cycle_day}"
 
 ##################################  CMD-LINE OVERRIDES  ########################
 
@@ -117,20 +130,20 @@ local_dir = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp/{cycle_year}/{cycle_month}
  
 _config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 500e+6 # 500M
 _config_override["model_type"]["rffs_bgdawp"]["remote_dir"] = '/rrfs_dev1/conus/bgdawp'
-_config_override["model_type"]["rffs_bgdawp"]["remote_filename"] = "{cycle_year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgdawp"]["local_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp/{cycle_year}/{cycle_month}{cycle_day}"
+_config_override["model_type"]["rffs_bgdawp"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_bgdawp"]["local_dir"] = "RRFS/GSL/CONUS/bgdawp/{cycle_year}/{cycle_month}{cycle_day}"
 _config_override["model_type"]["rffs_bgdawp"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgdwawp.grib2"        
 
 _config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 500e+6 # 500M
 _config_override["model_type"]["rffs_bgrd3d"]["remote_dir"] = '/rrfs_dev1/conus/bgrd3d'
-_config_override["model_type"]["rffs_bgrd3d"]["remote_filename"] = "{cycle_year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgrd3d"]["local_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgrd3d/{cycle_year}/{cycle_month}{cycle_day}"
+_config_override["model_type"]["rffs_bgrd3d"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_bgrd3d"]["local_dir"] = "RRFS/GSL/CONUS/bgrd3d/{cycle_year}/{cycle_month}{cycle_day}"
 _config_override["model_type"]["rffs_bgrd3d"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgrd3d.grib2"        
 
 _config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = -1 # 500e+6 # 500M
 _config_override["model_type"]["rffs_bgsfc"]["remote_dir"] = '/rrfs_dev1/conus/bgsfc'
-_config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgsfc"]["local_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc/{cycle_year}/{cycle_month}{cycle_day}"
+_config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_bgsfc"]["local_dir"] = "RRFS/GSL/CONUS/bgsfc/{cycle_year}/{cycle_month}{cycle_day}"
 _config_override["model_type"]["rffs_bgsfc"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgsfc.grib2"        
 
 
@@ -263,6 +276,8 @@ def find_latest_hour_offset():
 def add_file_template_time_values(file_template_values, dt):
     file_template_values["cycle_date"] = dt.strftime('%Y%m%d')
     file_template_values["cycle_year"] = dt.strftime('%Y')
+    file_template_values["cycle_2year"] = dt.strftime('%y')
+    logging.debug(f'2year = {file_template_values["cycle_2year"]}')
     file_template_values["cycle_month"] = dt.strftime('%m')
     file_template_values["cycle_hour"] = dt.strftime('%H')
     file_template_values["cycle_minute"] = dt.strftime('%m')
@@ -295,20 +310,24 @@ def is_local_file_good(local_path, remote_file_size):
     return local_file_size == remote_file_size
 
 
-# TODO: what if this fails?
+# return -1 on failure
 def get_remote_file_size(remote_path):
 
     time.sleep(p['request_sleep'])
 
-    if p["retrieval_protocol"] == 'http':
-        # Get the remote size
-        ret = urllib.request.urlopen(remote_path)
-        file_size_at_server = int(ret.info().get('content-length', '0'))
-        ret.close()
-        return file_size_at_server
+    try:
+        if p["retrieval_protocol"] == 'http':
+            # Get the remote size
+            ret = urllib.request.urlopen(remote_path)
+            file_size_at_server = int(ret.info().get('content-length', '0'))
+            ret.close()
+            return file_size_at_server
 
-    if p["retrieval_protocol"] == 'ftp':
-        return p["_ftp"].size(remote_path)
+        if p["retrieval_protocol"] == 'ftp':
+            return p["_ftp"].size(remote_path)
+    except:
+        logging.debug("file size retrieval failed.")
+        return -1
 
 def safe_mkdirs(d):
     logging.info(f"making dir: {d}")
@@ -321,7 +340,7 @@ def print_params():
     for line in p.getParamsString().splitlines():
         logging.info(f"\t{line}")
 
-def get_remote_file(local_dir, local_file, remote_dir, remote_file):
+def get_remote_file(remote_dir, remote_file, local_dir, local_file):
 
     remote_path = os.path.join(remote_dir, remote_file)
     local_path = os.path.join(local_dir, local_file)
@@ -331,7 +350,7 @@ def get_remote_file(local_dir, local_file, remote_dir, remote_file):
 
     # File wasn't the right size or wasn't there. Either way
     # it isn't there now. Get the file.
-    logging.info(f"downloading {remote_path}")
+    logging.info(f"downloading {remote_path} to {local_path}")
 
     # TODO: would be better to use a python module (urllib?)
     if p['retrieval_protocol'] == 'http':
@@ -342,7 +361,7 @@ def get_remote_file(local_dir, local_file, remote_dir, remote_file):
 
     if p['retrieval_protocol'] == 'ftp':
         with open(local_path, 'wb') as fp:
-            ftp.retrbinary('RETR ' + remote_file, fp.write)
+            p["_ftp"].retrbinary('RETR ' + remote_file, fp.write)
 
 
 def initiate_connection():
@@ -356,7 +375,6 @@ def close_connection():
     if p['retrieval_protocol'] == 'ftp':
         p['_ftp'].quit()
 
-def
 
 def main():
     condition_params()
@@ -365,83 +383,112 @@ def main():
 
     initiate_connection()
 
+
+    # if p['force_cycle_hour'] >= 0:
+    #     ptimeutc = datetime.utcnow()
+    #     ptimeutc = ptimeutc.replace(hour=p['force_cycle_hour'])
+    # else:
+    #     # If the offset in hours is set to -1, look through the previous
+    #     # hours to see what is available right now and reset force_cycle_hour to the most recent available data
+    #     p['force_cycle_hour'] = find_latest_hour_offset()
+    #     ptimeutc = datetime.utcnow() - timedelta(hours=p['force_cycle_hour'])
+
+    # gen_offset is the number of hours behind current hour we are attempting to get.
+    start_gen_offset = 0
+    end_gen_offset = p['look_back_hours']
+
     if p['force_cycle_hour'] >= 0:
-        ptimeutc = datetime.utcnow()
-        ptimeutc = ptimeutc.replace(hour=p['force_cycle_hour'])
-    else:
-        # If the offset in hours is set to -1, look through the previous
-        # hours to see what is available right now and reset force_cycle_hour to the most recent available data
-        p['force_cycle_hour'] = find_latest_hour_offset()
-        ptimeutc = datetime.utcnow() - timedelta(hours=p['force_cycle_hour'])
+        start_gen_offset = datetime.utcnow().hour - p['force_cycle_hour']
+        if start_gen_offset < 0:
+            start_gen_offset  += 24
+        end_gen_offset = start_gen_offset
 
-    # Setup the file template dictionary now that we know what hour to get.
-    file_template_values = {}
-    add_file_template_time_values(file_template_values, ptimeutc)
+    for gen_offset in range(start_gen_offset, end_gen_offset + 1):
 
-    # Check to see if the remote directory actually exists
 
-    if not is_url_valid(p['base_url'], p['remote_dir'].format(**file_template_values)):
-        logging.warning(f"{p['remote_dir']} at {p['base_url']} is not available.")
-    else:
-        logging.info(f"{p['remote_dir']} at {p['base_url']} is available.")
+        ptimeutc = datetime.utcnow() - timedelta(hours=gen_offset)
+        ptimeutc.minute = 0
+        gen_hour = ptimeutc.hour
 
-    # ------------------------------------------------------------------
-    # Download the data
-    # ------------------------------------------------------------------
-    downloaded_files = 0
+        if not gen_hour % p['gen_step'] == 0:
+            continue
 
-    # loop over all forecast hours up to the maximum forecast hour.
-    start_hour = 0
-    end_hour = p['max_forecast_hour']
-    hour_step = p['forecast_step']
+        # Setup the file template dictionary now that we know what hour to get.
+        file_template_values = {}
+        add_file_template_time_values(file_template_values, ptimeutc)
 
-    for fh in range(start_hour, end_hour + 1, hour_step):
-
-        file_template_values["forecast_hour"] = fh
-        file_template_values["forecast_minute"] = "00"
-
-        # Remote file name
-        remote_dir = p['remote_dir'].format(**file_template_values)
-        remote_file = p['remote_filename'].format(**file_template_values)
-        remote_path = os.path.join(remote_dir, remote_file)
-
-        # Local file name
-        local_dir = p['local_dir'].format(**file_template_values)
-        local_file = p['local_filename'].format(**file_template_values)
-        local_path = os.path.join(local_dir, local_file)
-
-        logging.debug(f"foreast hour: {h}\tremote: {remote_path}\tlocal: {local_path}")
-
-        safe_mkdirs(local_dir)
-
-        # Check if the file is already available on the local disk
-        remote_file_size = get_remote_file_size(remote_path)
-
-        if is_local_file_good(local_path, remote_file_size):
-            logging.debug(f"Already have good local file - {local_path}")
+        # Check to see if the remote directory actually exists
+        # TODO: if the directory doesn't have an hour in it, we should just do this once, not every loop
+        if not is_url_valid(p['base_url'], p['remote_dir'].format(**file_template_values)):
+            logging.warning(f"{p['remote_dir']} at {p['base_url']} is not available.")
+            continue
         else:
+            logging.info(f"{p['remote_dir']} at {p['base_url']} is available.")
 
-            get_remote_file(remote_dir, remote_file, local_dir, local_file)
+        # ------------------------------------------------------------------
+        # Download the data
+        # ------------------------------------------------------------------
+        downloaded_files = 0
 
+        # loop over all forecast hours up to the maximum forecast hour.
+        start_hour = 0
+        end_hour = p['max_forecast_hour']
+        hour_step = p['forecast_step']
 
-            # Check if we got a good file
+        for fh in range(start_hour, end_hour + 1):
+
+            if not fh % hour_step == 0:
+                continue
+
+            file_template_values["forecast_hour"] = fh
+            file_template_values["forecast_minute"] = 0
+
+            # Remote file name
+            remote_dir = p['remote_dir'].format(**file_template_values)
+            remote_file = p['remote_filename'].format(**file_template_values)
+            remote_path = os.path.join(remote_dir, remote_file)
+
+            # Local file name
+            local_full_dir = os.path.join(p['local_base_dir'].format(**file_template_values), p['local_dir'].format(**file_template_values))
+            local_file = p['local_filename'].format(**file_template_values)
+            local_path = os.path.join(local_full_dir, local_file)
+
+            logging.debug(f"foreast hour: {fh}\tremote: {remote_path}\tlocal: {local_path}")
+
+            safe_mkdirs(local_full_dir)
+
+            # Check if the file is already available on the local disk
+            remote_file_size = get_remote_file_size(remote_path)
+            logging.verbose(f"Remote File Size: {remote_file_size}")
+            if remote_file_size < 0:
+                logging.info("Couldn't get remote file size, moving to next file.")
+                continue
+
             if is_local_file_good(local_path, remote_file_size):
-
-                # All is well. Tell the user
-                downloaded_files += 1
-                logging.debug(f"{local_path} successfully retrieved.")
-
-                # Write latest_data_info and register
-                # with data mapper if requested to do so
-                if p['write_ldata']:
-                    cmd = (f"LdataWriter -dir {local_dir} -rpath  {local_file} -dtype grib2 -lead {h * 60 * 60} "
-                           f"-ltime {file_template_values['cycle_time']}0000 -maxDataTime")
-                    run_cmd(cmd)
-
+                logging.debug(f"Already have good local file - {local_path}")
             else:
-                logging.error(f"downloading {remote_path} failed !")
-                cmd = f'rm -f {local_path}'
-                run_cmd(cmd)
+
+                get_remote_file(remote_dir, remote_file, local_full_dir, local_file)
+
+
+                # Check if we got a good file
+                if is_local_file_good(local_path, remote_file_size):
+
+                    # All is well. Tell the user
+                    downloaded_files += 1
+                    logging.debug(f"{local_path} successfully retrieved.")
+
+                    # Write latest_data_info and register
+                    # with data mapper if requested to do so
+                    if p['write_ldata']:
+                        cmd = (f"LdataWriter -dir {local_full_dir} -rpath  {local_file} -dtype grib2 -lead {h * 60 * 60} "
+                               f"-ltime {file_template_values['cycle_time']}0000 -maxDataTime")
+                        run_cmd(cmd)
+
+                else:
+                    logging.error(f"downloading {remote_path} failed !")
+                    cmd = f'rm -f {local_path}'
+                    run_cmd(cmd)
 
     logging.info(f"{os.path.basename(__file__)} completed succesfully.  Retrieved {downloaded_files} files.")
     close_connection()
