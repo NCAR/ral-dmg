@@ -38,6 +38,11 @@ except ImportError:
 
 defaultParams = """
 
+
+######################################################################################################
+####    MODEL CONFIGURATION
+######################################################################################################
+
 # model_type is the model to download.  
 #   valid: 'rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc', ''
 
@@ -52,6 +57,8 @@ model_type = ""
 # i.e. if you set this to 12 it will start with the present time, and then look back an hour at a time
 #      for a model run that you don't already have locally, and work it's way to the max look_back_hours.
 look_back_hours = 24  
+
+
 
 
 # If force_cycle_hour >= 0, then the download script attempts to get data for that specific cycle hour
@@ -73,6 +80,9 @@ forecast_step = 1
 gen_step = 6
 
 
+################################################################################
+####     CONNECTION CONFIGURATION
+################################################################################
 # location of the gfs data (passed to ncftpget)
 base_url = 'gsdftp.fsl.noaa.gov'
 
@@ -86,18 +96,22 @@ retrieval_protocol = 'ftp'
 auth_user = 'ftp'
 auth_pass = ''
 
-
-# should we write an Ldata file?
-write_ldata = True
+# When set to a positive number, the script will exit once this # of succesful downloads have been achieved.
+max_downloads = -1
 
 
 # how long to sleep between url requests  (in seconds)
 request_sleep = 1
 
 
-# if downloaded files are smaller than this, an error is assumed to have occurred.
-# Set to a negative number to disable this check.
-min_expected_filesize = 500e+6  # 500M
+# should we write an Ldata file?
+write_ldata = True
+
+
+
+########################################################################################################################
+####    FILE AND DIRECTORY CONFIGURATION
+########################################################################################################################
 
 
 # You can use some various replacement field templates in these parameters
@@ -137,12 +151,18 @@ local_base_dir = "/rapdmg2/data/grib/"
 local_dir = "{cycle_date}"
 
 
-##################################  CMD-LINE OVERRIDES  ########################
+# if downloaded files are smaller than this, an error is assumed to have occurred.
+# Set to a negative number to disable this check.
+min_expected_filesize = 500e+6  # 500M
 
-# DEFAULTS in this file are for bgdawp, if you set model_type to something else on the command line, 
-# then the _config_override values (below) will override with values that make sense for other models.
 
-# This allows you to set just one thing on the cmd line (i.e. model_type), and change several dependent values.
+
+####################################################################################################################
+####    COMMAND LINE OVERRIDES - These allow the user to set just one thing on the cmd line (i.e. model_type), and change several dependent values.
+####################################################################################################################
+# 
+# If you set model_type to something on the command line then the _config_override values (below) 
+# will override with values that make sense for other models.
 
 ########## RFFS #############
  
@@ -164,6 +184,8 @@ _config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_2year}
 _config_override["model_type"]["rffs_bgsfc"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc"
 _config_override["model_type"]["rffs_bgsfc"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgsfc.grib2"        
 
+
+########## GFS  ################
 
 _config_override["model_type"]["GFS3"]["local_filename"] = "{cycle_time}_fh.{forecast_hour:04d}_tl.press_gr.1p0deg.grib2"          
 _config_override["model_type"]["GFS3"]["remote_filename"] = "gfs.t{cycle_hour}z.pgrb2.1p00.f{forecast_hour:03d}"
@@ -295,7 +317,6 @@ def add_file_template_time_values(file_template_values, dt):
     file_template_values["cycle_date"] = dt.strftime('%Y%m%d')
     file_template_values["cycle_year"] = dt.strftime('%Y')
     file_template_values["cycle_2year"] = dt.strftime('%y')
-    logging.debug(f'2year = {file_template_values["cycle_2year"]}')
     file_template_values["cycle_month"] = dt.strftime('%m')
     file_template_values["cycle_hour"] = dt.strftime('%H')
     file_template_values["cycle_minute"] = dt.strftime('%M')
@@ -378,8 +399,10 @@ def get_remote_file(remote_dir, remote_file, local_dir, local_file):
         run_cmd(cmd)
 
     if p['retrieval_protocol'] == 'ftp':
+        retr_cmd = 'RETR ' + remote_path
+        logging.verbose("FTP retrieval {retr_cmd} to {local_path}")
         with open(local_path, 'wb') as fp:
-            p["_ftp"].retrbinary('RETR ' + remote_file, fp.write)
+            p["_ftp"].retrbinary(retr_cmd, fp.write)
 
 
 def initiate_connection():
@@ -461,6 +484,9 @@ def main():
         for fh in range(start_hour, end_hour + 1):
 
             if not fh % hour_step == 0:
+                continue
+
+            if p["max_downloads"] > 0 and downloaded_files >= p["max_downloads"]:
                 continue
 
             file_template_values["forecast_hour"] = fh
