@@ -38,20 +38,26 @@ except ImportError:
 
 defaultParams = """
 
-# model_type is the model to download
-#   valid: rffs_bgdawp, rffs_bgrd3d, rffs_bgsfc
-# if you set this via the cmd line, then other parameter values will be set based on model_type 
-# (see _config_overide below), but parameters set on the command line take final precedence. 
-model_type = "rffs_bgdawp"
+# model_type is the model to download.  
+#   valid: 'rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc', ''
 
-# look_back_hours is the look back period. You can use this to get older model data.
+# If you set this via the cmd line, then other parameter values will be set based on model_type 
+# (see _config_overide below), but parameters set on the command line take final precedence. 
+
+# You do not need to use this configuration parameter at all.  It can be left an empty string and just set other values individually.
+model_type = ""
+
+
+# look_back_hours is the maximum look back period. You can use this to determine how far back in time this script will look for data.
 # i.e. if you set this to 12 it will start with the present time, and then look back an hour at a time
 #      for a model run that you don't already have locally, and work it's way to the max look_back_hours.
 look_back_hours = 24  
 
+
 # If force_cycle_hour >= 0, then the download script attempts to get data for that specific cycle hour
 # this overrides look_back_hours
 force_cycle_hour = -1
+
 
 # the maximum forecast hour to download
 max_forecast_hour = 36
@@ -61,30 +67,38 @@ max_forecast_hour = 36
 #  If this is > 1, forecast hours will only be used if the modulus of the forecast hour and this value is zero.
 forecast_step = 1
 
+
 # the step between generation hours to be downloaded (only suppports integers)
 #  If this is > 1, generations hours will only be used if the modulus of the generation hour and this value is zero.
 gen_step = 6
 
+
 # location of the gfs data (passed to ncftpget)
 base_url = 'gsdftp.fsl.noaa.gov'
 
+
 # valid values: 'ftp' or 'http'
 retrieval_protocol = 'ftp' 
+
 
 # username and password if authentication is required
 # only used by ftp - not supported yet by http.
 auth_user = 'ftp'
 auth_pass = ''
 
+
 # should we write an Ldata file?
-write_ldata = False
+write_ldata = True
+
 
 # how long to sleep between url requests  (in seconds)
-request_sleep = .25
+request_sleep = 1
+
 
 # if downloaded files are smaller than this, an error is assumed to have occurred.
 # Set to a negative number to disable this check.
 min_expected_filesize = 500e+6  # 500M
+
 
 # You can use some various replacement field templates in these parameters
 #   {cycle_year}         --- YYYY
@@ -110,14 +124,18 @@ min_expected_filesize = 500e+6  # 500M
 # RFFS-CONUS-bgdawp/GSL/20210104/20210104_i12_f023_RFFS-CONUS-bgdawp_GSL.grib2
 
 remote_filename = "{cycle_year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-local_filename = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgdwawp.grib2"        
+local_filename = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgdwawp.grib2"        
+
 
 # remote dir is *relative* and is appended to base_url 
 remote_dir = "data/nccf/com/gfs/prod/gfs.{cycle_date}/{cycle_hour}"
 
+
 #  local file = local_base_dir + local_dir + local_filename
+# If write_ldata is true, ldata files are placed in local_base_dir, and -rpath is local_dir/local_filename
 local_base_dir = "/rapdmg2/data/grib/"
-local_dir = "{cycle_year}/{cycle_month}{cycle_day}"
+local_dir = "{cycle_date}"
+
 
 ##################################  CMD-LINE OVERRIDES  ########################
 
@@ -131,20 +149,20 @@ local_dir = "{cycle_year}/{cycle_month}{cycle_day}"
 _config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 500e+6 # 500M
 _config_override["model_type"]["rffs_bgdawp"]["remote_dir"] = '/rrfs_dev1/conus/bgdawp'
 _config_override["model_type"]["rffs_bgdawp"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgdawp"]["local_dir"] = "RRFS/GSL/CONUS/bgdawp/{cycle_year}/{cycle_month}{cycle_day}"
-_config_override["model_type"]["rffs_bgdawp"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgdwawp.grib2"        
+_config_override["model_type"]["rffs_bgdawp"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp"
+_config_override["model_type"]["rffs_bgdawp"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgdwawp.grib2"        
 
 _config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 500e+6 # 500M
 _config_override["model_type"]["rffs_bgrd3d"]["remote_dir"] = '/rrfs_dev1/conus/bgrd3d'
 _config_override["model_type"]["rffs_bgrd3d"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgrd3d"]["local_dir"] = "RRFS/GSL/CONUS/bgrd3d/{cycle_year}/{cycle_month}{cycle_day}"
-_config_override["model_type"]["rffs_bgrd3d"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgrd3d.grib2"        
+_config_override["model_type"]["rffs_bgrd3d"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgrd3d"
+_config_override["model_type"]["rffs_bgrd3d"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgrd3d.grib2"        
 
 _config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = -1 # 500e+6 # 500M
 _config_override["model_type"]["rffs_bgsfc"]["remote_dir"] = '/rrfs_dev1/conus/bgsfc'
 _config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgsfc"]["local_dir"] = "RRFS/GSL/CONUS/bgsfc/{cycle_year}/{cycle_month}{cycle_day}"
-_config_override["model_type"]["rffs_bgsfc"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_RFFS-CONUS-bgsfc.grib2"        
+_config_override["model_type"]["rffs_bgsfc"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc"
+_config_override["model_type"]["rffs_bgsfc"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgsfc.grib2"        
 
 
 _config_override["model_type"]["GFS3"]["local_filename"] = "{cycle_time}_fh.{forecast_hour:04d}_tl.press_gr.1p0deg.grib2"          
@@ -194,7 +212,7 @@ def condition_params():
     p['retrieval_protocol'] = p['retrieval_protocol'].lower()
 
 def check_params():
-    model_type_values = ['rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc']
+    model_type_values = ['rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc', '']
     if p['model_type'] not in model_type_values:
         logging.fatal(f"model_type ({p['model_type']} is not supported.  Must be one of {model_type_values}")
         sys.exit(1)
@@ -280,7 +298,7 @@ def add_file_template_time_values(file_template_values, dt):
     logging.debug(f'2year = {file_template_values["cycle_2year"]}')
     file_template_values["cycle_month"] = dt.strftime('%m')
     file_template_values["cycle_hour"] = dt.strftime('%H')
-    file_template_values["cycle_minute"] = dt.strftime('%m')
+    file_template_values["cycle_minute"] = dt.strftime('%M')
     file_template_values["cycle_time"] = file_template_values["cycle_date"] + file_template_values["cycle_hour"]
     file_template_values["cycle_day"] = dt.strftime('%d')
     file_template_values["cycle_julian_day"] = dt.strftime('%j')
@@ -330,8 +348,8 @@ def get_remote_file_size(remote_path):
         return -1
 
 def safe_mkdirs(d):
-    logging.info(f"making dir: {d}")
     if not os.path.exists(d):
+        logging.info(f"making dir: {d}")
         os.makedirs(d, 0o777, exist_ok=True)
 
 
@@ -403,11 +421,16 @@ def main():
             start_gen_offset  += 24
         end_gen_offset = start_gen_offset
 
+        
+    downloaded_files = 0
+        
     for gen_offset in range(start_gen_offset, end_gen_offset + 1):
 
 
         ptimeutc = datetime.utcnow() - timedelta(hours=gen_offset)
-        ptimeutc.minute = 0
+        #print(f"ptimeutc = {ptimeutc}")
+        ptimeutc = ptimeutc.replace(minute = 0)
+        #print(f"ptimeutc = {ptimeutc}")
         gen_hour = ptimeutc.hour
 
         if not gen_hour % p['gen_step'] == 0:
@@ -419,16 +442,16 @@ def main():
 
         # Check to see if the remote directory actually exists
         # TODO: if the directory doesn't have an hour in it, we should just do this once, not every loop
-        if not is_url_valid(p['base_url'], p['remote_dir'].format(**file_template_values)):
-            logging.warning(f"{p['remote_dir']} at {p['base_url']} is not available.")
-            continue
-        else:
-            logging.info(f"{p['remote_dir']} at {p['base_url']} is available.")
+        # TODO: commented out for now, because without a check for dir, we are just pinging the server needlessly
+        #if not is_url_valid(p['base_url'], p['remote_dir'].format(**file_template_values)):
+        #    logging.warning(f"{p['remote_dir']} at {p['base_url']} is not available.")
+        #    continue
+        #else:
+        #    logging.info(f"{p['remote_dir']} at {p['base_url']} is available.")
 
         # ------------------------------------------------------------------
         # Download the data
         # ------------------------------------------------------------------
-        downloaded_files = 0
 
         # loop over all forecast hours up to the maximum forecast hour.
         start_hour = 0
@@ -443,13 +466,15 @@ def main():
             file_template_values["forecast_hour"] = fh
             file_template_values["forecast_minute"] = 0
 
-            # Remote file name
+            # Remote file
             remote_dir = p['remote_dir'].format(**file_template_values)
             remote_file = p['remote_filename'].format(**file_template_values)
             remote_path = os.path.join(remote_dir, remote_file)
 
-            # Local file name
-            local_full_dir = os.path.join(p['local_base_dir'].format(**file_template_values), p['local_dir'].format(**file_template_values))
+            # Local file
+            local_base_dir = p['local_base_dir'].format(**file_template_values)
+            local_dir = p['local_dir'].format(**file_template_values)
+            local_full_dir = os.path.join(local_base_dir, local_dir)
             local_file = p['local_filename'].format(**file_template_values)
             local_path = os.path.join(local_full_dir, local_file)
 
@@ -461,7 +486,7 @@ def main():
             remote_file_size = get_remote_file_size(remote_path)
             logging.verbose(f"Remote File Size: {remote_file_size}")
             if remote_file_size < 0:
-                logging.info("Couldn't get remote file size, moving to next file.")
+                logging.info(f"Couldn't get remote file size for {remote_path}, moving to next file.")
                 continue
 
             if is_local_file_good(local_path, remote_file_size):
@@ -478,11 +503,12 @@ def main():
                     downloaded_files += 1
                     logging.debug(f"{local_path} successfully retrieved.")
 
+                    # TODO: only supports grib2 data type currently
                     # Write latest_data_info and register
                     # with data mapper if requested to do so
                     if p['write_ldata']:
-                        cmd = (f"LdataWriter -dir {local_full_dir} -rpath  {local_file} -dtype grib2 -lead {h * 60 * 60} "
-                               f"-ltime {file_template_values['cycle_time']}0000 -maxDataTime")
+                        cmd = (f"LdataWriter -dir {local_base_dir} -rpath  {os.path.join(local_dir,local_file)} -dtype grib2 -lead {fh * 60 * 60} "
+                               f"-ltime {ptimeutc.strftime('%Y%m%d%H%M00')} -maxDataTime")
                         run_cmd(cmd)
 
                 else:
