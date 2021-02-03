@@ -107,7 +107,8 @@ request_sleep = 1
 # should we write an Ldata file?
 write_ldata = True
 
-
+# connection will retry until this number of errors reached.
+max_errors = 6
 
 ########################################################################################################################
 ####    FILE AND DIRECTORY CONFIGURATION
@@ -165,20 +166,20 @@ min_expected_filesize = 500e+6  # 500M
 # will override with values that make sense for other models.
 
 ########## RFFS #############
- 
-_config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 500e+6 # 500M
+
+_config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 50e+6 # 50M
 _config_override["model_type"]["rffs_bgdawp"]["remote_dir"] = '/rrfs_dev1/conus/bgdawp'
 _config_override["model_type"]["rffs_bgdawp"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
 _config_override["model_type"]["rffs_bgdawp"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp"
 _config_override["model_type"]["rffs_bgdawp"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgdwawp.grib2"        
 
-_config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 500e+6 # 500M
+_config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 50e+6 # 50M
 _config_override["model_type"]["rffs_bgrd3d"]["remote_dir"] = '/rrfs_dev1/conus/bgrd3d'
 _config_override["model_type"]["rffs_bgrd3d"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
 _config_override["model_type"]["rffs_bgrd3d"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgrd3d"
 _config_override["model_type"]["rffs_bgrd3d"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgrd3d.grib2"        
 
-_config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = -1 # 500e+6 # 500M
+_config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = 3e+6 # 3M
 _config_override["model_type"]["rffs_bgsfc"]["remote_dir"] = '/rrfs_dev1/conus/bgsfc'
 _config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
 _config_override["model_type"]["rffs_bgsfc"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc"
@@ -233,6 +234,10 @@ def condition_params():
     p['model_type'] = p['model_type'].lower()
     p['retrieval_protocol'] = p['retrieval_protocol'].lower()
 
+    if p['max_errors'] < 1:
+        p['max_errors'] = 6
+    p['_total_errors'] = 0
+
 def check_params():
     model_type_values = ['rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc', '']
     if p['model_type'] not in model_type_values:
@@ -271,10 +276,12 @@ def url_join(*args):
 
 def is_url_valid(base_url, remote_dir):
 
+    logging.info(f"sleeping: {p['request_sleep']} (before is_url_valid)")
+    time.sleep(p['request_sleep'])
+
     if p['retrieval_protocol'] == 'http':
         try:
             url_dir = url_join(base_url, remote_dir)
-            time.sleep(p['request_sleep'])
             ret = urllib.request.urlopen(url_dir)
             ret.close()
         except urllib.error.URLError as e:
@@ -283,7 +290,6 @@ def is_url_valid(base_url, remote_dir):
 
     if p['retrieval_protocol'] == 'ftp':
         try:
-            time.sleep(p['request_sleep'])
             p['_ftp'].cwd(remote_dir)  # change into "debian" directory
         except ftplib.error_perm as e:
             return False
@@ -293,6 +299,8 @@ def is_url_valid(base_url, remote_dir):
     # This really only works if the data is organized into hourly directories...
     #   Maybe we should just skip this, and work backwards from present time if an hour is not
     #   explicitly given.
+
+    # NOT BEING USED FOR ABOVE REASONS
 def find_latest_hour_offset():
     # Get current time
     ctimeutc = datetime.utcnow()
@@ -325,7 +333,13 @@ def add_file_template_time_values(file_template_values, dt):
     file_template_values["cycle_julian_day"] = dt.strftime('%j')
 
 
-
+def connection_error():
+    p['_total_errors'] += 1
+    p['request_sleep'] *= 1.5
+    
+    if p['_total_errors'] > p['max_errors']:
+        logging.error(f"maximum errors reached: {p['max_errors']}")
+        sys.exit(0)
 
 def is_local_file_good(local_path, remote_file_size):
     """
@@ -352,6 +366,7 @@ def is_local_file_good(local_path, remote_file_size):
 # return -1 on failure
 def get_remote_file_size(remote_path):
 
+    logging.info(f"sleeping: {p['request_sleep']} (before get_remote_file_size)")
     time.sleep(p['request_sleep'])
 
     try:
@@ -387,29 +402,35 @@ def get_remote_file(remote_dir, remote_file, local_dir, local_file):
     cmd = f"rm -f {local_path}"
     run_cmd(cmd)
 
+
+    logging.info(f"sleeping: {p['request_sleep']} (before get_remote_file)")
+    time.sleep(p['request_sleep'])
     # File wasn't the right size or wasn't there. Either way
     # it isn't there now. Get the file.
     logging.info(f"downloading {remote_path} to {local_path}")
 
-    # TODO: would be better to use a python module (urllib?)
-    if p['retrieval_protocol'] == 'http':
-        # Get the file using wget
-        cmd = f'wget {remote_path} -O {local_path}'
-        time.sleep(p['request_sleep'])
-        run_cmd(cmd)
+    try:
+        # TODO: would be better to use a python module (urllib?)
+        if p['retrieval_protocol'] == 'http':
+            # Get the file using wget
+            cmd = f'wget {remote_path} -O {local_path}'
+            run_cmd(cmd)
 
-    if p['retrieval_protocol'] == 'ftp':
-        retr_cmd = 'RETR ' + remote_path
-        logging.verbose("FTP retrieval {retr_cmd} to {local_path}")
-        with open(local_path, 'wb') as fp:
-            p["_ftp"].retrbinary(retr_cmd, fp.write)
+        if p['retrieval_protocol'] == 'ftp':
+            retr_cmd = 'RETR ' + remote_path
+            logging.verbose(f"FTP retrieval {retr_cmd} to {local_path}")
+            with open(local_path, 'wb') as fp:
+                p["_ftp"].retrbinary(retr_cmd, fp.write)
+    except:
+        connection_error()
+        
 
 
 def initiate_connection():
 
     if p['retrieval_protocol'] == 'ftp':
-        logging.debug(f"Connecting to {p['base_url']}")
-        logging.debug(f"Using <{p['auth_user']}>, <{p['auth_pass']}>")
+        logging.info(f"Connecting to {p['base_url']}")
+        #logging.debug(f"Using <{p['auth_user']}>, <{p['auth_pass']}>")
         p['_ftp'] = ftplib.FTP(host=p['base_url'], user=p['auth_user'], passwd=p['auth_pass'])  # connect to host, default port
 
 def close_connection():
@@ -504,7 +525,7 @@ def main():
             local_file = p['local_filename'].format(**file_template_values)
             local_path = os.path.join(local_full_dir, local_file)
 
-            logging.debug(f"foreast hour: {fh}\tremote: {remote_path}\tlocal: {local_path}")
+            logging.verbose(f"foreast hour: {fh}\tremote: {remote_path}\tlocal: {local_path}")
 
             safe_mkdirs(local_full_dir)
 
@@ -512,7 +533,7 @@ def main():
             remote_file_size = get_remote_file_size(remote_path)
             logging.verbose(f"Remote File Size: {remote_file_size}")
             if remote_file_size < 0:
-                logging.info(f"Couldn't get remote file size for {remote_path}, moving to next file.")
+                logging.debug(f"Couldn't get remote file size for {remote_path}, moving to next file.")
                 continue
 
             if is_local_file_good(local_path, remote_file_size):
@@ -527,7 +548,7 @@ def main():
 
                     # All is well. Tell the user
                     downloaded_files += 1
-                    logging.debug(f"{local_path} successfully retrieved.")
+                    logging.info(f"{local_path} successfully retrieved.")
 
                     # TODO: only supports grib2 data type currently
                     # Write latest_data_info and register
