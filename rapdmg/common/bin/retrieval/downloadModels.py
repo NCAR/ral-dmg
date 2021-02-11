@@ -167,19 +167,19 @@ min_expected_filesize = 500e+6  # 500M
 
 ########## RFFS #############
 
-_config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 50e+6 # 50M
+_config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 5e+6 # 5M
 _config_override["model_type"]["rffs_bgdawp"]["remote_dir"] = '/rrfs_dev1/conus/bgdawp'
 _config_override["model_type"]["rffs_bgdawp"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
 _config_override["model_type"]["rffs_bgdawp"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp"
 _config_override["model_type"]["rffs_bgdawp"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgdwawp.grib2"        
 
-_config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 50e+6 # 50M
+_config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 5e+6 # 5M
 _config_override["model_type"]["rffs_bgrd3d"]["remote_dir"] = '/rrfs_dev1/conus/bgrd3d'
 _config_override["model_type"]["rffs_bgrd3d"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
 _config_override["model_type"]["rffs_bgrd3d"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgrd3d"
 _config_override["model_type"]["rffs_bgrd3d"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgrd3d.grib2"        
 
-_config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = 3e+6 # 3M
+_config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = 3e+5 # 300k
 _config_override["model_type"]["rffs_bgsfc"]["remote_dir"] = '/rrfs_dev1/conus/bgsfc'
 _config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
 _config_override["model_type"]["rffs_bgsfc"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc"
