@@ -44,14 +44,15 @@ defaultParams = """
 ######################################################################################################
 
 # model_type is the model to download.  
-#   valid: 'rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc', ''
+#   valid: 'rffs_gsl_bgdawp_conus', 'rffs_gsl_bgrd3d_conus', 'rffs_gsl_bgsfc_conus', 
+#          'rffs_gsl_bgdawp_ak', 'rffs_gsl_bgrd3d_ak', 'rffs_gsl_bgsfc_ak'
 
 # If you set this via the cmd line, then other parameter values will be set based on model_type 
 # (see _config_overide below), but parameters set on the command line take final precedence. 
 
 # You do not need to use this configuration parameter at all.  It can be left an empty string and just set other values individually.
 model_type = ""
-
+# model_type.valid_values = ["rffs_gsl_bgdawp_conus", "rffs_gsl_bgrd3d_conus", "rffs_gsl_bgsfc_conus", "rffs_gsl_bgdawp_ak", "rffs_gsl_bgrd3d_ak", "rffs_gsl_bgsfc_ak", "GFS0.5"]
 
 # look_back_hours is the maximum look back period. You can use this to determine how far back in time this script will look for data.
 # i.e. if you set this to 12 it will start with the present time, and then look back an hour at a time
@@ -83,7 +84,7 @@ gen_step = 6
 ################################################################################
 ####     CONNECTION CONFIGURATION
 ################################################################################
-# location of the gfs data (passed to ncftpget)
+# location of the model data (url accessible via ftp or http)
 base_url = 'gsdftp.fsl.noaa.gov'
 
 
@@ -167,29 +168,60 @@ min_expected_filesize = 500e+6  # 500M
 
 ########## RFFS #############
 
-_config_override["model_type"]["rffs_bgdawp"]["min_expected_filesize"] = 5e+6 # 5M
-_config_override["model_type"]["rffs_bgdawp"]["remote_dir"] = '/rrfs_dev1/conus/bgdawp'
-_config_override["model_type"]["rffs_bgdawp"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgdawp"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp"
-_config_override["model_type"]["rffs_bgdawp"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgdwawp.grib2"        
+_config_override["model_type"]["rffs_gsl_bgdawp_conus"]["min_expected_filesize"] = 5e+6 # 5M
+_config_override["model_type"]["rffs_gsl_bgdawp_conus"]["remote_dir"] = '/rrfs_dev1/conus/bgdawp'
+_config_override["model_type"]["rffs_gsl_bgdawp_conus"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_gsl_bgdawp_conus"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgdawp"
+_config_override["model_type"]["rffs_gsl_bgdawp_conus"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgdwawp.grib2"        
 
-_config_override["model_type"]["rffs_bgrd3d"]["min_expected_filesize"] = 5e+6 # 5M
-_config_override["model_type"]["rffs_bgrd3d"]["remote_dir"] = '/rrfs_dev1/conus/bgrd3d'
-_config_override["model_type"]["rffs_bgrd3d"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgrd3d"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgrd3d"
-_config_override["model_type"]["rffs_bgrd3d"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgrd3d.grib2"        
+_config_override["model_type"]["rffs_gsl_bgrd3d_conus"]["min_expected_filesize"] = 5e+6 # 5M
+_config_override["model_type"]["rffs_gsl_bgrd3d_conus"]["remote_dir"] = '/rrfs_dev1/conus/bgrd3d'
+_config_override["model_type"]["rffs_gsl_bgrd3d_conus"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_gsl_bgrd3d_conus"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgrd3d"
+_config_override["model_type"]["rffs_gsl_bgrd3d_conus"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgrd3d.grib2"        
 
-_config_override["model_type"]["rffs_bgsfc"]["min_expected_filesize"] = 3e+5 # 300k
-_config_override["model_type"]["rffs_bgsfc"]["remote_dir"] = '/rrfs_dev1/conus/bgsfc'
-_config_override["model_type"]["rffs_bgsfc"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
-_config_override["model_type"]["rffs_bgsfc"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc"
-_config_override["model_type"]["rffs_bgsfc"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgsfc.grib2"        
+_config_override["model_type"]["rffs_gsl_bgsfc_conus"]["min_expected_filesize"] = 3e+5 # 300k
+_config_override["model_type"]["rffs_gsl_bgsfc_conus"]["remote_dir"] = '/rrfs_dev1/conus/bgsfc'
+_config_override["model_type"]["rffs_gsl_bgsfc_conus"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_gsl_bgsfc_conus"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/CONUS/bgsfc"
+_config_override["model_type"]["rffs_gsl_bgsfc_conus"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-CONUS-bgsfc.grib2"        
+
+
+_config_override["model_type"]["rffs_gsl_bgdawp_ak"]["min_expected_filesize"] = 2e+6 # 2M
+_config_override["model_type"]["rffs_gsl_bgdawp_ak"]["remote_dir"] = '/rrfs_dev1/alaska/bgdawp'
+_config_override["model_type"]["rffs_gsl_bgdawp_ak"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_gsl_bgdawp_ak"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/AK/bgdawp"
+_config_override["model_type"]["rffs_gsl_bgdawp_ak"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-AK-bgdwawp.grib2"        
+
+_config_override["model_type"]["rffs_gsl_bgrd3d_ak"]["min_expected_filesize"] = 2e+6 # 2M
+_config_override["model_type"]["rffs_gsl_bgrd3d_ak"]["remote_dir"] = '/rrfs_dev1/alaska/bgrd3d'
+_config_override["model_type"]["rffs_gsl_bgrd3d_ak"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_gsl_bgrd3d_ak"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/AK/bgrd3d"
+_config_override["model_type"]["rffs_gsl_bgrd3d_ak"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-AK-bgrd3d.grib2"        
+
+_config_override["model_type"]["rffs_gsl_bgsfc_ak"]["min_expected_filesize"] = 1e+5 # 100k
+_config_override["model_type"]["rffs_gsl_bgsfc_ak"]["remote_dir"] = '/rrfs_dev1/alaska/bgsfc'
+_config_override["model_type"]["rffs_gsl_bgsfc_ak"]["remote_filename"] = "{cycle_2year}{cycle_julian_day}{cycle_hour}00{forecast_hour:02d}00"
+_config_override["model_type"]["rffs_gsl_bgsfc_ak"]["local_base_dir"] = "/rapdmg2/data/grib/RRFS/GSL/AK/bgsfc"
+_config_override["model_type"]["rffs_gsl_bgsfc_ak"]["local_filename"] = "{cycle_date}_i{cycle_hour}_{cycle_minute}_f{forecast_hour:03d}_{forecast_minute:02d}_GSL_RFFS-AK-bgsfc.grib2"        
 
 
 ########## GFS  ################
 
-_config_override["model_type"]["GFS3"]["local_filename"] = "{cycle_time}_fh.{forecast_hour:04d}_tl.press_gr.1p0deg.grib2"          
-_config_override["model_type"]["GFS3"]["remote_filename"] = "gfs.t{cycle_hour}z.pgrb2.1p00.f{forecast_hour:03d}"
+_config_override["model_type"]["GFS0.5"]["local_filename"] = "{cycle_time}_fh.{forecast_hour:04d}_tl.press_gr.1p0deg.grib2"          
+_config_override["model_type"]["GFS0.5"]["remote_filename"] = "gfs.t{cycle_hour}z.pgrb2.1p00.f{forecast_hour:03d}"
+_config_override["model_type"]["GFS0.5"]["retrieval_protocal"] = "http"
+
+
+#_config_valid_values["model_type"] = ["rffs_gsl_bgdawp_conus", "rffs_gsl_bgrd3d_conus", "rffs_gsl_bgsfc_conus", "rffs_gsl_bgdawp_ak", "rffs_gsl_bgrd3d_ak", "rffs_gsl_bgsfc_ak", "GFS0.5"]
+
+#def validate(key, value):
+#  if key == "model_type":
+#      return value in  ["rffs_gsl_bgdawp_conus", "rffs_gsl_bgrd3d_conus", "rffs_gsl_bgsfc_conus", "rffs_gsl_bgdawp_ak", "rffs_gsl_bgrd3d_ak", "rffs_gsl_bgsfc_ak", "GFS0.5"]
+
+
+#test = {}
+#test["this"] = "that"
 
 """
 
@@ -239,9 +271,9 @@ def condition_params():
     p['_total_errors'] = 0
 
 def check_params():
-    model_type_values = ['rffs_bgdawp', 'rffs_bgrd3d', 'rffs_bgsfc', '']
-    if p['model_type'] not in model_type_values:
-        logging.fatal(f"model_type ({p['model_type']} is not supported.  Must be one of {model_type_values}")
+    valid_models = ["rffs_gsl_bgdawp_conus", "rffs_gsl_bgrd3d_conus", "rffs_gsl_bgsfc_conus", "rffs_gsl_bgdawp_ak", "rffs_gsl_bgrd3d_ak", "rffs_gsl_bgsfc_ak", "GFS0.5"]
+    if p['model_type'] not in valid_models:
+        logging.fatal(f"model_type ({p['model_type']} is not supported.  Must be one of {valid_models}")
         sys.exit(1)
 
     retrieval_values = ['ftp', 'http']
