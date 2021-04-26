@@ -178,8 +178,8 @@ def run_cmd(cmd, exception_on_error=False, log_func_on_failure=logging.warning):
                                  encoding='utf-8')
 
     if completed_process.returncode != 0:
-        log_func_on_failure(f'Command returned non-zero exit status: {cmd_out.returncode}\n\tcmd: {cmd}.')
-        log_func_on_failure(f'\tstderr: {cmd_out.stderr}')
+        log_func_on_failure(f'Command returned non-zero exit status: {completed_process.returncode}\n\tcmd: {cmd}.')
+        log_func_on_failure(f'\tstderr: {completed_process.stderr}')
         if exception_on_error:
             raise subprocess.CalledProcessError(cmd_out.returncode, cmd)
 
