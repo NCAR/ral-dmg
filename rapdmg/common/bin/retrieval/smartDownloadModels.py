@@ -55,7 +55,7 @@ defaultParams = """
 # You do not need to use this configuration parameter at all.  It can be left an empty string and just set other values individually.
 model_type = ""
 # model_type.valid_values = ["rffs_gsl_bgdawp_conus", "rffs_gsl_bgrd3d_conus", "rffs_gsl_bgsfc_conus", 
-#                             "rffs_gsl_bgdawp_ak", "rffs_gsl_bgrd3d_ak", "rffs_gsl_bgsfc_ak", "GFS0.5", "NAM212"]
+#                             "rffs_gsl_bgdawp_ak", "rffs_gsl_bgrd3d_ak", "rffs_gsl_bgsfc_ak", "gfs0.5", "nam212"]
 
 # look_back_hours is the maximum look back period. You can use this to determine how far back in time this script will look for data.
 # i.e. if you set this to 12 it will start with the present time, and then look back an hour at a time
@@ -113,6 +113,8 @@ request_sleep = 1
 
 # should we write an Ldata file?
 write_ldata = True
+
+ldata_dtype = "grib2"
 
 # connection will retry until this number of errors reached.
 max_errors = 6
@@ -513,7 +515,7 @@ def get_remote_file_list(current_cycle):
     rdl.store_dir_listing(curl_args)
 
     # TODO: we could be smarter about if we've already made a remote dir listing of the same dir.
-    #       But I think we'd have to make a single rdl in main(), and pass it here?  Or convert entire thing to a class.
+    #       But I think we'd want to make a single rdl in main(), and pass it here?  Or convert entire thing to a class.
     return rdl.files
 
 
@@ -632,13 +634,12 @@ def main():
                     downloaded_files += 1
                     logging.info(f"{local_path} successfully retrieved.")
 
-                    # TODO: only supports grib2 data type currently
-                    # Write latest_data_info and register
-                    # with data mapper if requested to do so
+                    # Write latest_data_info if requested to do so
                     if p['write_ldata']:
                         cmd = (
-                            f"LdataWriter -dir {local_base_dir} -rpath  {os.path.join(local_dir, local_file)} -dtype grib2 -lead {fh * 60 * 60} "
-                            f"-ltime {current_cycle.strftime('%Y%m%d%H%M00')} -maxDataTime")
+                            f"LdataWriter -dir {local_base_dir} -rpath  {os.path.join(local_dir, local_file)}"
+                             f" -dtype {p['ldata_dtype']} -lead {fh * 60 * 60}"
+                            f" -ltime {current_cycle.strftime('%Y%m%d%H%M00')} -maxDataTime")
                         run_cmd(cmd)
 
                 else:
