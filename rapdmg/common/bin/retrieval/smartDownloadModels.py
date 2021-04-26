@@ -101,8 +101,8 @@ base_url = 'ftp://gsdftp.fsl.noaa.gov'
 
 # username and password if authentication is required
 # only used by ftp - not supported yet by http.
-auth_user = 'ftp'
-auth_pass = 'cowie@ucar.edu'
+auth_user = ''
+auth_pass = ''
 
 # When set to a positive number, the script will exit once this # of successful downloads have been achieved.
 max_downloads = -1
@@ -216,21 +216,23 @@ _config_override["model_type"]["rffs_gsl_bgsfc_ak"]["local_filename"] = "{cycle_
 
 ########## GFS  ################
 
-_config_override["model_type"]["GFS0.5"]["local_filename"] = "{cycle_time}_fh.{forecast_hour:04d}_tl.press_gr.1p0deg.grib2"          
-_config_override["model_type"]["GFS0.5"]["remote_filename"] = "gfs.t{cycle_hour}z.pgrb2.1p00.f{forecast_hour:03d}"
-_config_override["model_type"]["GFS0.5"]["retrieval_protocal"] = "http"
+_config_override["model_type"]["gfs0.5"]["local_filename"] = "{cycle_time}_fh.{forecast_hour:04d}_tl.press_gr.1p0deg.grib2"          
+_config_override["model_type"]["gfs0.5"]["remote_filename"] = "gfs.t{cycle_hour}z.pgrb2.1p00.f{forecast_hour:03d}"
+_config_override["model_type"]["gfs0.5"]["retrieval_protocal"] = "http"
 
 ######### NAM  ################
 #           nam.t12z.awip3d36.tm00.grib2       
 # 20210423_i06_f030_NAM212.grb2
-_config_override["model_type"]["NAM212"]["base_url"] = "https://ftpprd.ncep.noaa.gov"
-_config_override["model_type"]["NAM212"]["remote_filename"] = "nam.t{cycle_hour}z.awip3d{forecast_hour:02d}.tm00.grib2"
-_config_override["model_type"]["NAM212"]["local_filename"] = "{cycle_date}_i{cycle_hour}_f{forecast_hour:03d}_NAM212.grb2"        
+_config_override["model_type"]["nam212"]["base_url"] = "https://ftpprd.ncep.noaa.gov"
+_config_override["model_type"]["nam212"]["remote_filename"] = "nam.t{cycle_hour}z.awip3d{forecast_hour:02d}.tm00.grib2"
+_config_override["model_type"]["nam212"]["local_filename"] = "{cycle_date}_i{cycle_hour}_f{forecast_hour:03d}_NAM212.grb2"        
+_config_override["model_type"]["nam212"]["max_forecast_hour"] = 84
+_config_override["model_type"]["nam212"]["min_expected_filesize"] = 5e+6 # 5M
 
 # remote dir is *relative* and is appended to base_url 
-_config_override["model_type"]["NAM212"]["remote_dir"] = "/data/nccf/com/nam/prod/nam.{cycle_date}/"
+_config_override["model_type"]["nam212"]["remote_dir"] = "/data/nccf/com/nam/prod/nam.{cycle_date}/"
 
-_config_override["model_type"]["NAM212"]["local_base_dir"] = "/rapdmg1/data/grib/NAM212"
+_config_override["model_type"]["nam212"]["local_base_dir"] = "/rapdmg1/data/grib/NAM212"
 
 
 
