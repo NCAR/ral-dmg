@@ -20,7 +20,7 @@ BASH_ENV=$HOME/.bashrc
 # GFS004 (i.e. 0.5 degree) is for some reason not getting here via LDM
 # so we are getting it via wget now.
 # https://wiki.ucar.edu/pages/viewpage.action?pageId=414417571
-17 * * * * ~/wget/gfs/wget_gfs_0.5.pl > $HOME/logs/wget_gfs_0.5.pl.cron.log 2>&1
+# 17 * * * * ~/wget/gfs/wget_gfs_0.5.pl > $HOME/logs/wget_gfs_0.5.pl.cron.log 2>&1
 
 
 # check on status of ldm
@@ -36,7 +36,9 @@ BASH_ENV=$HOME/.bashrc
 # move grib files from CONDUIT that were slow to complete
 */15 * * * * grib_scraps.py --top_dir /var/autofs/mnt/rapdmg1/data/grib --debug --min_percentage 99.5 --notify 2>&1 | /rap/bin/LogFilter -d $HOME/logs/ -p grib_scraps
 
-#if nto running, start up LdataWatchers to provide LDM notifications of arriving model data
+#if not running, start up LdataWatchers to provide LDM notifications of arriving model data
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.NAM212 > $HOME/logs/LdataWatcher.NAM212.log 2>&1
+*/5 * * * * $HOME/rap/bin/start_LdataWatcher.GFS004 > $HOME/logs/LdataWatcher.GFS004.log 2>&1
 */5 * * * * $HOME/rap/bin/start_LdataWatcher.RAP130N > $HOME/logs/LdataWatcher.RAP130N.log 2>&1
 */5 * * * * $HOME/rap/bin/start_LdataWatcher.RAP130P > $HOME/logs/LdataWatcher.RAP130P.log 2>&1
 */5 * * * * $HOME/rap/bin/start_LdataWatcher.HRRR-NCEP-N > $HOME/logs/LdataWatcher.HRRR-NCEP-N.log 2>&1
@@ -47,6 +49,8 @@ BASH_ENV=$HOME/.bashrc
 # kind of a hack, but the LdataWatchers above, for some reason stop calling their child scripts on occasion.
 # even though the LdataWatcher is up and logging, the child script doesn't seem to get called.  Killing and
 # restarting the LdataWatcher seems to fix the problem, so for now, just kill them once a day.
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.NAM212 > $HOME/logs/Snuff.NAM212.log 2>&1
+4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.GFS004 > $HOME/logs/Snuff.GFS004.log 2>&1
 4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.RAP130P > $HOME/logs/Snuff.RAP130P.log 2>&1
 4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.RAP130N > $HOME/logs/Snuff.RAP130N.log 2>&1
 4 0 * * * snuff LdataWatcher\ -params\ LdataWatcher.HRRR-NCEP-P > $HOME/logs/Snuff.HRRR-NCEP-P.log 2>&1

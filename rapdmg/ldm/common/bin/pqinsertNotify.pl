@@ -76,6 +76,12 @@ if ($model_dir =~ m/HRRR-NCEP-wrfprs/){
 if ($model_dir =~ m/HRRR-NCEP-wrfnat/){
     $productId = "HRRR-NCEP-wrfnat"
 }
+if ($model_dir =~ m/GFS004/){
+    $productId = "GFS004"
+}
+if ($model_dir =~ m/NAM212/){
+    $productId = "NAM212"
+}
 
 
 
